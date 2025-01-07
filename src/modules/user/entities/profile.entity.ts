@@ -1,6 +1,7 @@
 import { BaseEntity } from 'src/common/abstracts/base.entity';
 import { EntityName } from 'src/common/enums/entity.enum';
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
+import { OtpEntity } from './otp.entity';
 
 @Entity(EntityName.Profile)
 export class ProfileEntity extends BaseEntity {
@@ -16,4 +17,5 @@ export class ProfileEntity extends BaseEntity {
   profile_image: string;
   @Column({ nullable: true })
   birthday: Date;
+  
 }

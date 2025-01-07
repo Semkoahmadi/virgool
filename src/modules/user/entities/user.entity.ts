@@ -1,20 +1,32 @@
 import { BaseEntity } from 'src/common/abstracts/base.entity';
 import { EntityName } from 'src/common/enums/entity.enum';
-import { Column, CreateDateColumn, Entity, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  OneToOne,
+  UpdateDateColumn,
+} from 'typeorm';
+import { OtpEntity } from './otp.entity';
 
 @Entity(EntityName.User)
 export class UserEntity extends BaseEntity {
-  @Column({ unique: true })
-  user_name: string;
-  @Column({ nullable:true })
+  @Column({ unique: true ,nullable:true})
+  username: string;
+  @Column({ nullable: true })
   passwrd: string;
-  @Column({ nullable:true })
+  @Column({ nullable: true })
+  otpId: number;
+  @OneToOne(() => OtpEntity, (otp) => otp.user, { nullable: true })
+  @JoinColumn()
+  otp: OtpEntity;
+  @Column({ nullable: true })
   email: string;
-  @Column({ nullable:true})
+  @Column({ nullable: true })
   phone: string;
   @CreateDateColumn()
-  creatde_at:Date;
+  creatde_at: Date;
   @UpdateDateColumn()
-  updated_at:Date;
-
+  updated_at: Date;
 }

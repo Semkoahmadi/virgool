@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
 import { AuthMethod } from './enums/method.enum';
 import { isEmail, isMobilePhone } from 'class-validator';
@@ -7,52 +12,124 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { ProfileEntity } from '../user/entities/profile.entity';
+import { OtpEntity } from '../user/entities/otp.entity';
+import { randomInt } from 'crypto';
+import { JwtService } from '@nestjs/jwt';
+import { TokenService } from './tokens.service';
+import { Response } from 'express';
+import { AuthResponse } from './types/responce';
+import { CookieKeys } from 'src/common/enums/cookie.enum';
 
 @Injectable()
 export class AuthService {
-  constructor(@InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
-    @InjectRepository(ProfileEntity) private profileRepository: Repository<ProfileEntity>,
+  constructor(
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
+    @InjectRepository(ProfileEntity)
+    private profileRepository: Repository<ProfileEntity>,
+    @InjectRepository(OtpEntity) private otpRepository: Repository<OtpEntity>,
+    private tokenService: TokenService
   ) {}
-  userExistence(authDto: AuthDto) {
+ async userExistence(authDto: AuthDto,res:Response) {
     const { method, type, username } = authDto;
+    let result: AuthResponse;
     switch (type) {
-      case Authtype.Login: return this.login(method, username);
-      case Authtype.Register: return this.register(method, username);
-      default: throw new UnauthorizedException("Gorg...")
+      case Authtype.Login:
+        result = await this.login(method,username);
+        return this.sendResponse(res,result);
+      case Authtype.Register:
+        result = await this.register(method,username);
+        return this.sendResponse(res,result);
+      default:
+        throw new UnauthorizedException('Gorg...');
     }
   }
   async login(method: AuthMethod, username: string) {
-    const validUsername = this.usernameValidator(method,username);
-    let user: UserEntity = await this.checkExistUser(method,validUsername)
-    if(!user) throw new BadRequestException("salaam")
+    const validUsername = this.usernameValidator(method, username);
+    let user: UserEntity = await this.checkExistUser(method, validUsername);
+    if (!user) throw new BadRequestException('Salam!...');
+    const otp = await this.saveOtp(user.id);
+    const token = this.tokenService.createOtpToken({userId:user.id});
+    return { code: otp.code ,token};
   }
- async register(method: AuthMethod, username: string) {
-    const validUsername = this.usernameValidator(method,username);
-    let user: UserEntity = await this.checkExistUser(method,validUsername)
-    if(!user) throw new BadRequestException("salaam")
+  async register(method: AuthMethod, username: string) {
+    const validUsername = this.usernameValidator(method, username);
+    let user: UserEntity = await this.checkExistUser(method, validUsername);
+    if (user) throw new ConflictException('Eshtbah omde..');
+    if (method === AuthMethod.UserName) {
+      throw new BadRequestException('Nmessheh...');
+    }
+    user = this.userRepository.create({
+      [method]: username,
+    });
+    user = await this.userRepository.save(user);
+    user.username = `BKC_${user.id}`;
+    await this.userRepository.save(user);
+    const otp = await this.saveOtp(user.id);
+    const token = this.tokenService.createOtpToken({userId:user.id});
+    return {
+      token,
+      code: otp.code
+    };
+  }
+  async sendResponse(res:Response,result:AuthResponse){
+    const {token,code} = result;
+    res.cookie(CookieKeys.OTp,token,{httpOnly:true});
+    res.json({message:"Sent!..",code});
   }
   async checkExistUser(method: AuthMethod, username: string) {
     let user: UserEntity;
     if (method === AuthMethod.Phone) {
-      user = await this.userRepository.findOneBy({ phone: username })
+      user = await this.userRepository.findOneBy({ phone: username });
     } else if (method === AuthMethod.Email) {
-      user = await this.userRepository.findOneBy({ email: username })
+      user = await this.userRepository.findOneBy({ email: username });
     } else if (method === AuthMethod.UserName) {
-      user = await this.userRepository.findOneBy({ user_name:username})
+      user = await this.userRepository.findOneBy({ username });
     } else {
-      throw new BadRequestException("Gorg11...")
+      throw new BadRequestException('Gorg11...');
     }
     return user;
   }
-    usernameValidator(method: AuthMethod, username: string) {
-      switch (method) {
-        case AuthMethod.Email: if (isEmail(username)) return username;
-          throw new BadRequestException("Sorry.. Email!");
-        case AuthMethod.Phone: if (isMobilePhone(username, "fa-IR")) return username;
-          throw new BadRequestException("Sorry.. Phone!")
-        case AuthMethod.UserName: return username
-        default: throw new BadRequestException("Sorry.. Ajebh!")
-      }
+ 
+  async saveOtp(userId: number) {
+    const code = randomInt(10000, 99999).toString();
+    const expiresIn = new Date(Date.now() + 1000 * 60 * 2);
+    let existotp = false;
+    let otp = await this.otpRepository.findOneBy({ userId });
+    if (otp) {
+      existotp = true;
+      otp.code = code;
+      otp.expiresIn = expiresIn;
+    } else {
+      otp = this.otpRepository.create({
+        userId,
+        code,
+        expiresIn,
+      });
+    }
+    otp = await this.otpRepository.save(otp);
+    if (!existotp) {
+      await this.userRepository.update(
+        { id: userId },
+        {
+          otpId: otp.id,
+        }
+      );
+    }
+    return otp;
+  }
+  usernameValidator(method: AuthMethod, username: string) {
+    switch (method) {
+      case AuthMethod.Email:
+        if (isEmail(username)) return username;
+        throw new BadRequestException('Sorry.. Email!');
+      case AuthMethod.Phone:
+        if (isMobilePhone(username, 'fa-IR')) return username;
+        throw new BadRequestException('Sorry.. Phone!');
+      case AuthMethod.UserName:
+        return username;
+      default:
+        throw new BadRequestException('Sorry.. Ajebh!');
     }
   }
-
+}
