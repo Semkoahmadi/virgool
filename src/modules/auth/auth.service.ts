@@ -1,7 +1,9 @@
 import {
   BadRequestException,
   ConflictException,
+  Inject,
   Injectable,
+  Scope,
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthDto } from './dto/auth.dto';
@@ -16,11 +18,12 @@ import { OtpEntity } from '../user/entities/otp.entity';
 import { randomInt } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import { TokenService } from './tokens.service';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { AuthResponse } from './types/responce';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
+import { REQUEST } from '@nestjs/core/router/request';
 
-@Injectable()
+@Injectable({ scope: Scope.REQUEST })
 export class AuthService {
   constructor(
     @InjectRepository(UserEntity)
@@ -28,18 +31,19 @@ export class AuthService {
     @InjectRepository(ProfileEntity)
     private profileRepository: Repository<ProfileEntity>,
     @InjectRepository(OtpEntity) private otpRepository: Repository<OtpEntity>,
+    @Inject(REQUEST) private request: Request,
     private tokenService: TokenService
   ) {}
- async userExistence(authDto: AuthDto,res:Response) {
+  async userExistence(authDto: AuthDto, res: Response) {
     const { method, type, username } = authDto;
     let result: AuthResponse;
     switch (type) {
       case Authtype.Login:
-        result = await this.login(method,username);
-        return this.sendResponse(res,result);
+        result = await this.login(method, username);
+        return this.sendResponse(res, result);
       case Authtype.Register:
-        result = await this.register(method,username);
-        return this.sendResponse(res,result);
+        result = await this.register(method, username);
+        return this.sendResponse(res, result);
       default:
         throw new UnauthorizedException('Gorg...');
     }
@@ -49,8 +53,8 @@ export class AuthService {
     let user: UserEntity = await this.checkExistUser(method, validUsername);
     if (!user) throw new BadRequestException('Salam!...');
     const otp = await this.saveOtp(user.id);
-    const token = this.tokenService.createOtpToken({userId:user.id});
-    return { code: otp.code ,token};
+    const token = this.tokenService.createOtpToken({ userId: user.id });
+    return { code: otp.code, token };
   }
   async register(method: AuthMethod, username: string) {
     const validUsername = this.usernameValidator(method, username);
@@ -66,31 +70,20 @@ export class AuthService {
     user.username = `BKC_${user.id}`;
     await this.userRepository.save(user);
     const otp = await this.saveOtp(user.id);
-    const token = this.tokenService.createOtpToken({userId:user.id});
+    const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
       token,
-      code: otp.code
+      code: otp.code,
     };
   }
-  async sendResponse(res:Response,result:AuthResponse){
-    const {token,code} = result;
-    res.cookie(CookieKeys.OTp,token,{httpOnly:true});
-    res.json({message:"Sent!..",code});
+  async sendResponse(res: Response, result: AuthResponse) {
+    const { token, code } = result;
+    res.cookie(CookieKeys.OTp, token, {
+      httpOnly: true,
+      expires: new Date(Date.now() + 60 * 2 * 1000),
+    });
+    res.json({ message: 'Sent!..', code });
   }
-  async checkExistUser(method: AuthMethod, username: string) {
-    let user: UserEntity;
-    if (method === AuthMethod.Phone) {
-      user = await this.userRepository.findOneBy({ phone: username });
-    } else if (method === AuthMethod.Email) {
-      user = await this.userRepository.findOneBy({ email: username });
-    } else if (method === AuthMethod.UserName) {
-      user = await this.userRepository.findOneBy({ username });
-    } else {
-      throw new BadRequestException('Gorg11...');
-    }
-    return user;
-  }
- 
   async saveOtp(userId: number) {
     const code = randomInt(10000, 99999).toString();
     const expiresIn = new Date(Date.now() + 1000 * 60 * 2);
@@ -118,6 +111,38 @@ export class AuthService {
     }
     return otp;
   }
+  async checkOtp(code: string) {
+    const token = this.request.cookies?.[CookieKeys.OTp];
+    if(!token)throw new UnauthorizedException('Token Not Found');
+    const {userId} = this.tokenService.verifyOtpToken(token);
+    const otp =await this.otpRepository.findOneBy({userId});
+    if(!otp)throw new UnauthorizedException('Otp Not Found');
+    const now = new Date()
+    if( otp.expiresIn < now) throw new UnauthorizedException('Otp Expired');
+    if( otp.code !== code) throw new UnauthorizedException('Cod..Bad');
+    const acccessToken = this.tokenService.createAccessToken({userId})
+    return {message:"Welcome to the dashboard",acccessToken};
+  }
+  async checkExistUser(method: AuthMethod, username: string) {
+    let user: UserEntity;
+    if (method === AuthMethod.Phone) {
+      user = await this.userRepository.findOneBy({ phone: username });
+    } else if (method === AuthMethod.Email) {
+      user = await this.userRepository.findOneBy({ email: username });
+    } else if (method === AuthMethod.UserName) {
+      user = await this.userRepository.findOneBy({ username });
+    } else {
+      throw new BadRequestException('Gorg11...');
+    }
+    return user;
+  }
+  async validateAccessToken(token:string){
+    const {userId} = this.tokenService.verifyAccessToken(token);
+    const user = await this.userRepository.findOneBy({id:userId});
+     if(!user) throw new BadRequestException("Sorry..Problem");
+     return user;
+  }
+
   usernameValidator(method: AuthMethod, username: string) {
     switch (method) {
       case AuthMethod.Email:

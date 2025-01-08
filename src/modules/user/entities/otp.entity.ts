@@ -7,10 +7,10 @@ import { UserEntity } from './user.entity';
 export class OtpEntity extends BaseEntity {
   @Column()
   code: string;
+  @Column({})
+  expiresIn: Date;
   @Column()
   userId: number;
-  @Column()
-  expiresIn: Date;
   @OneToOne(() => UserEntity, user => user.otp, {onDelete:"CASCADE"})
   user:UserEntity
   

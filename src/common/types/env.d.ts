@@ -1,5 +1,5 @@
 namespace NodeJS {
-  interface ProcessENV {
+  interface ProcessEnv {
     //Application
     PORT:number
     //Database
@@ -11,5 +11,6 @@ namespace NodeJS {
     //secrets
     COOKIE_SECRET:string
     OTP_TOKEN_SECRET:string
+    ACCESS_TOKEN_SECRET:string
   }
 }

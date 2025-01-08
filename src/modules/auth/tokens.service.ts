@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { CookiePayload } from './types/payload';
+import { AccessTokenPayload, CookiePayload } from './types/payload';
 @Injectable()
 export class TokenService {
   constructor(private jwtService: JwtService) {}
@@ -12,4 +12,31 @@ export class TokenService {
     });
     return token;
   }
+  verifyOtpToken(token: string): CookiePayload {
+    try {
+      return this.jwtService.verify(token, {
+        secret: process.env.OTP_TOKEN_SECRET,
+      });
+    } catch (error) {
+      throw new BadRequestException('Waaw , invalid token!!');
+    }
+  }
+
+  createAccessToken(payload: AccessTokenPayload) {
+    const token = this.jwtService.sign(payload, {
+      secret: process.env.ACCESS_TOKEN_SECRET,
+      expiresIn: "1y"
+    });
+    return token;
+  }
+  verifyAccessToken(token: string): AccessTokenPayload {
+    try {
+      return this.jwtService.verify(token, {
+        secret: process.env.ACCESS_TOKEN_SECRET,
+      });
+    } catch (error) {
+      throw new BadRequestException('Waaw , Dozdd!!');
+    }
+  }
 }
+
