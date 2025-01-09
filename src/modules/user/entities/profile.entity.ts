@@ -17,5 +17,7 @@ export class ProfileEntity extends BaseEntity {
   profile_image: string;
   @Column({ nullable: true })
   birthday: Date;
+  @Column({ nullable: true })
+  instagram: string;
   
 }
