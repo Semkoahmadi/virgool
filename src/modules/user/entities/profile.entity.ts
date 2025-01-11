@@ -2,6 +2,7 @@ import { BaseEntity } from 'src/common/abstracts/base.entity';
 import { EntityName } from 'src/common/enums/entity.enum';
 import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
 import { OtpEntity } from './otp.entity';
+import { UserEntity } from './user.entity';
 
 @Entity(EntityName.Profile)
 export class ProfileEntity extends BaseEntity {
@@ -19,5 +20,8 @@ export class ProfileEntity extends BaseEntity {
   birthday: Date;
   @Column({ nullable: true })
   instagram: string;
-  
+  @Column()
+  userId:number;
+  @OneToOne(() => UserEntity, user=>user.profile,{onDelete:"CASCADE"})
+  user:UserEntity;
 }

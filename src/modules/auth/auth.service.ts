@@ -16,7 +16,6 @@ import { Repository } from 'typeorm';
 import { ProfileEntity } from '../user/entities/profile.entity';
 import { OtpEntity } from '../user/entities/otp.entity';
 import { randomInt } from 'crypto';
-import { JwtService } from '@nestjs/jwt';
 import { TokenService } from './tokens.service';
 import { Request, Response } from 'express';
 import { AuthResponse } from './types/responce';
