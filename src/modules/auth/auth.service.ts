@@ -21,6 +21,7 @@ import { Request, Response } from 'express';
 import { AuthResponse } from './types/responce';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { REQUEST } from '@nestjs/core/router/request';
+import { CookiesOptionToken } from 'src/common/utils/cooki.util';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -51,7 +52,7 @@ export class AuthService {
     const validUsername = this.usernameValidator(method, username);
     let user: UserEntity = await this.checkExistUser(method, validUsername);
     if (!user) throw new BadRequestException('Salam!...');
-    const otp = await this.saveOtp(user.id);
+    const otp = await this.saveOtp(user.id,method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
     return { code: otp.code, token };
   }
@@ -68,7 +69,7 @@ export class AuthService {
     user = await this.userRepository.save(user);
     user.username = `BKC_${user.id}`;
     await this.userRepository.save(user);
-    const otp = await this.saveOtp(user.id);
+    const otp = await this.saveOtp(user.id,method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
       token,
@@ -77,13 +78,10 @@ export class AuthService {
   }
   async sendResponse(res: Response, result: AuthResponse) {
     const { token, code } = result;
-    res.cookie(CookieKeys.OTp, token, {
-      httpOnly: true,
-      expires: new Date(Date.now() + 60 * 2 * 1000),
-    });
+    res.cookie(CookieKeys.OTp, token,CookiesOptionToken());
     res.json({ message: 'Sent!..', code });
   }
-  async saveOtp(userId: number) {
+  async saveOtp(userId: number,method:AuthMethod) {
     const code = randomInt(10000, 99999).toString();
     const expiresIn = new Date(Date.now() + 1000 * 60 * 2);
     let existotp = false;
@@ -92,11 +90,13 @@ export class AuthService {
       existotp = true;
       otp.code = code;
       otp.expiresIn = expiresIn;
+      otp.method = method;
     } else {
       otp = this.otpRepository.create({
         userId,
         code,
         expiresIn,
+        method  
       });
     }
     otp = await this.otpRepository.save(otp);
@@ -112,15 +112,20 @@ export class AuthService {
   }
   async checkOtp(code: string) {
     const token = this.request.cookies?.[CookieKeys.OTp];
-    if(!token)throw new UnauthorizedException('Token Not Found');
-    const {userId} = this.tokenService.verifyOtpToken(token);
-    const otp =await this.otpRepository.findOneBy({userId});
-    if(!otp)throw new UnauthorizedException('Otp Not Found');
-    const now = new Date()
-    if( otp.expiresIn < now) throw new UnauthorizedException('Otp Expired');
-    if( otp.code !== code) throw new UnauthorizedException('Cod..Bad');
-    const acccessToken = this.tokenService.createAccessToken({userId})
-    return {message:"Welcome to the dashboard",acccessToken};
+    if (!token) throw new UnauthorizedException('Token Not Found');
+    const { userId } = this.tokenService.verifyOtpToken(token);
+    const otp = await this.otpRepository.findOneBy({ userId });
+    if (!otp) throw new UnauthorizedException('Otp Not Found');
+    const now = new Date();
+    if (otp.expiresIn < now) throw new UnauthorizedException('Otp Expired');
+    if (otp.code !== code) throw new UnauthorizedException('Cod..Bad');
+    const acccessToken = this.tokenService.createAccessToken({ userId });
+    if (otp.method === AuthMethod.Email) {
+      await this.userRepository.update({ id: userId }, { verify_email: true });
+    } else if (otp.method === AuthMethod.Phone) {
+      await this.userRepository.update({ id: userId }, { verify_email: true });
+    }
+    return { message: 'Welcome to the dashboard', acccessToken };
   }
   async checkExistUser(method: AuthMethod, username: string) {
     let user: UserEntity;
@@ -135,11 +140,11 @@ export class AuthService {
     }
     return user;
   }
-  async validateAccessToken(token:string){
-    const {userId} = this.tokenService.verifyAccessToken(token);
-    const user = await this.userRepository.findOneBy({id:userId});
-     if(!user) throw new BadRequestException("Sorry..Problem");
-     return user;
+  async validateAccessToken(token: string) {
+    const { userId } = this.tokenService.verifyAccessToken(token);
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) throw new BadRequestException('Sorry..Problem');
+    return user;
   }
 
   usernameValidator(method: AuthMethod, username: string) {

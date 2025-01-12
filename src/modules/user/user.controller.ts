@@ -1,29 +1,28 @@
 import {
   Controller,
   Get,
-  Post,
-  Body,
   Patch,
-  Param,
-  Delete,
   Put,
   UseInterceptors,
-  UploadedFiles,
-  ParseFilePipe,
   UseGuards,
+  Body,
+  Res,
+  Post,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/user.dto';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { ProfileDto } from './dto/profile.dto';
 import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import {
-  multerDestination,
-  multerFilename,
-} from 'src/common/utils/multer.util';
+import { multerStorage } from 'src/common/utils/multer.util';
 import { AuthGuard } from '../auth/guards/auth.guard';
+import { ProfileImage } from './types/files';
+import { UploadOptionalFiles } from 'src/common/decorators/upload-file.decorator';
+import { ChangeEmailDto } from './entities/profile.entity';
+import { Response } from 'express';
+import { CookieKeys } from 'src/common/enums/cookie.enum';
+import { CookiesOptionToken } from 'src/common/utils/cooki.util';
+import { CheckOtpDto } from '../auth/dto/auth.dto';
 
 @Controller('user')
 @ApiTags('User')
@@ -41,23 +40,34 @@ export class UserController {
         { name: 'profile_image', maxCount: 1 },
       ],
       {
-        storage: diskStorage({
-          destination: multerDestination('user-profile'),
-          filename: multerFilename,
-        }),
+        storage: multerStorage('user-profile'),
       }
     )
   )
   changeProfile(
-    @UploadedFiles(
-      new ParseFilePipe({
-        fileIsRequired: false,
-        validators: [],
-      })
-    )
-    files: any,
+    @UploadOptionalFiles() files: ProfileImage,
     @Body() profileDto: ProfileDto
   ) {
     return this.userService.changeProfile(files, profileDto);
+  }
+
+  @Get('/profile')
+  profile() {
+    return this.userService.profile();
+  }
+
+  @Patch('/change-email')
+  async changeEmail(@Body() emailDto: ChangeEmailDto, @Res() res: Response) {
+    const { token, code, message } = await this.userService.changeEmail(
+      emailDto.email
+    );
+    if (message) return res.json({ message });
+    res.cookie(CookieKeys.EmailOtp, token, CookiesOptionToken());
+    res.json({ code, message: 'BiaTo.. ' });
+  }
+
+  @Post('/verify-email-otp')
+  async verifyEmail(@Body() otpDto: CheckOtpDto) {
+    return await this.userService.verifyEmail(otpDto.code)
   }
 }

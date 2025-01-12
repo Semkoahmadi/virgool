@@ -12,5 +12,8 @@ namespace NodeJS {
     COOKIE_SECRET:string
     OTP_TOKEN_SECRET:string
     ACCESS_TOKEN_SECRET:string
+    EMAIL_TOKEN_SECRET:string
+    PHONE_TOKEN_SECRET:string
+
   }
 }

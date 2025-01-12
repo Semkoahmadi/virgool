@@ -15,8 +15,18 @@ import { ProfileEntity } from './profile.entity';
 export class UserEntity extends BaseEntity {
   @Column({ unique: true, nullable: true })
   username: string;
+  @Column({ nullable: true,unique:true })
+  email: string;
+  @Column({ nullable: true })
+  phone: string;
   @Column({ nullable: true })
   passwrd: string;
+  @Column({ nullable: true })
+  new_email: string;
+  @Column({ nullable: true, default: false })
+  verify_email: boolean;
+  @Column({ nullable: true, default: false })
+  verify_phone: boolean;
   @Column({ nullable: true })
   otpId: number;
   @Column({ nullable: true })
@@ -27,10 +37,6 @@ export class UserEntity extends BaseEntity {
   @OneToOne(() => ProfileEntity, (profile) => profile.user, { nullable: true })
   @JoinColumn()
   profile: ProfileEntity;
-  @Column({ nullable: true })
-  email: string;
-  @Column({ nullable: true })
-  phone: string;
   @CreateDateColumn()
   creatde_at: Date;
   @UpdateDateColumn()

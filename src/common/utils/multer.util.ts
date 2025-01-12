@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { Request } from 'express';
 import { mkdirSync } from 'fs';
+import { diskStorage } from 'multer';
 import { extname, join } from 'path';
 
 export type CallbackDistination = (error: Error, destination: string) => void;
@@ -33,4 +34,11 @@ export function multerFilename(
 }
 function isValidImageFormat(ext: string) {
   return ['.png', '.jpeg', '.jpg'].includes(ext);
+}
+
+export function multerStorage(folderName:string){
+  return diskStorage({
+    destination: multerDestination(folderName),
+    filename: multerFilename,
+  })
 }
