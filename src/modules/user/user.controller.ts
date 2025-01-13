@@ -18,7 +18,11 @@ import { multerStorage } from 'src/common/utils/multer.util';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { ProfileImage } from './types/files';
 import { UploadOptionalFiles } from 'src/common/decorators/upload-file.decorator';
-import { ChangeEmailDto } from './entities/profile.entity';
+import {
+  ChangeEmailDto,
+  ChangePhoneDto,
+  ChangeUsernameDto,
+} from './dto/profile.dto';
 import { Response } from 'express';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { CookiesOptionToken } from 'src/common/utils/cooki.util';
@@ -57,6 +61,7 @@ export class UserController {
   }
 
   @Patch('/change-email')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async changeEmail(@Body() emailDto: ChangeEmailDto, @Res() res: Response) {
     const { token, code, message } = await this.userService.changeEmail(
       emailDto.email
@@ -67,7 +72,31 @@ export class UserController {
   }
 
   @Post('/verify-email-otp')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async verifyEmail(@Body() otpDto: CheckOtpDto) {
-    return await this.userService.verifyEmail(otpDto.code)
+    return await this.userService.verifyEmail(otpDto.code);
+  }
+
+  @Patch('/change-phone')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  async changePhone(@Body() phoneDto: ChangePhoneDto, @Res() res: Response) {
+    const { token, code, message } = await this.userService.changePhone(
+      phoneDto.phone
+    );
+    if (message) return res.json({ message });
+    res.cookie(CookieKeys.PhoneOTp, token, CookiesOptionToken());
+    res.json({ code, message: 'BiaTo.. ' });
+  }
+
+  @Post('/verify-phone-otp')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  async verifyPhone(@Body() otpDto: CheckOtpDto) {
+    return await this.userService.verifyPhone(otpDto.code);
+  }
+
+  @Patch('/change-username')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  async changeUsername(@Body() usernameDto: ChangeUsernameDto) {
+    return this.userService.changeUsername(usernameDto.username);
   }
 }

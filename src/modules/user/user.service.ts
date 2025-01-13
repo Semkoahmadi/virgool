@@ -95,7 +95,7 @@ export class UserService {
     } else if (user && user.id == id) {
       return { message: 'Updated Success..' };
     }
-    await this.userRepository.update({id},{new_email:email})
+    await this.userRepository.update({ id }, { new_email: email });
     const otp = await this.authService.saveOtp(id, AuthMethod.Email);
     const token = this.tokenService.createEmailToken({ email });
     return {
@@ -125,8 +125,61 @@ export class UserService {
         new_email: null,
       }
     );
-    return {message:"Updated Success",accessToken}
+    return { message: 'Updated Success', accessToken };
   }
+
+  async changePhone(phone: string) {
+    const { id } = this.request.user;
+    const user = await this.userRepository.findOneBy({ phone });
+    if (user && user?.id !== id) {
+      throw new BadRequestException('pofusss!..');
+    } else if (user && user.id == id) {
+      return { message: 'Updated Success..' };
+    }
+    await this.userRepository.update({ id }, { new_phone: phone });
+    const otp = await this.authService.saveOtp(id, AuthMethod.Phone);
+    const token = this.tokenService.createPhoneToken({ phone });
+    return {
+      code: otp.code,
+      token,
+    };
+  }
+
+  async verifyPhone(code: string) {
+    const { id: userId, new_phone } = this.request.user;
+    const token = this.request.cookies?.[CookieKeys.PhoneOTp];
+    if (!token) throw new BadRequestException('Donbal ch megrdaee?..');
+    const { phone } = this.tokenService.verifyPhoneToken(token);
+    if (phone !== new_phone) {
+      throw new BadRequestException('Phone not match..');
+    }
+    const otp = await this.checkOtp(userId, code);
+    if (otp.method !== AuthMethod.Phone) {
+      throw new BadRequestException('No No No Mobile....');
+    }
+    await this.userRepository.update(
+      { id: userId },
+      {
+        phone,
+        verify_phone: true,
+        new_phone: null,
+      }
+    );
+    return { message: 'Updated Success' };
+  }
+
+  async changeUsername(username: string) {
+    const { id } = this.request.user;
+    const user = await this.userRepository.findOneBy({ username });
+    if (user && user?.id !== id) {
+      throw new BadRequestException('pofusss username not mach!..');
+    } else if (user && user.id == id) {
+      return { message: 'Updated Success..' };
+    }
+    await this.userRepository.update({ id }, { username });
+    return { message: 'Updated Username!..' };
+  }
+
   async checkOtp(userId: number, code: string) {
     const otp = await this.otpRepositort.findOneBy({ userId });
     if (!otp) throw new BadRequestException('Shramandeh Boy badimiad...');

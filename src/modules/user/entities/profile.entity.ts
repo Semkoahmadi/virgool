@@ -1,10 +1,8 @@
 import { BaseEntity } from 'src/common/abstracts/base.entity';
 import { EntityName } from 'src/common/enums/entity.enum';
-import { Column, Entity, JoinColumn, OneToOne } from 'typeorm';
-import { OtpEntity } from './otp.entity';
+import { Column,Entity,OneToOne } from 'typeorm';
 import { UserEntity } from './user.entity';
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, isEmail, IsMobilePhone } from 'class-validator';
+
 
 @Entity(EntityName.Profile)
 export class ProfileEntity extends BaseEntity {
@@ -28,14 +26,3 @@ export class ProfileEntity extends BaseEntity {
   user: UserEntity;
 }
 
-export class ChangeEmailDto {
-  @ApiProperty()
-  @IsEmail({}, { message: 'Sorry Bad Emaill' })
-  email: string;
-}
-
-export class ChangePhoneDto {
-  @ApiProperty()
-  @IsMobilePhone('fa-IR', {}, { message: 'Sorry Bad Phone' })
-  email: string;
-}
