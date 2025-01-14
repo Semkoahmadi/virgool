@@ -21,8 +21,7 @@ export class AuthController {
     return this.authService.checkOtp(checkOtpDto.code); 
   }
   @Get('check-login')
-  @ApiBearerAuth("Authorization")
-  @UseGuards(AuthGuard)
+  @ApiConsumes(SwaggerConsumes.UrlEncoded,SwaggerConsumes.Json)
   checklogin(@Req() request: Request) {
     return request.user; 
   }

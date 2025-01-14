@@ -22,6 +22,10 @@ export class BlogEntity extends BaseEntity {
   description: string;
   @Column()
   contetnt: string;
+  @Column({unique:true})
+  slug: string;
+  @Column()
+  time_for_read: string;
   @Column({ nullable: true })
   image: string;
   @Column()
