@@ -9,7 +9,6 @@ import {
   paginationGenerator,
   paginationSolver,
 } from 'src/common/utils/pagination.util';
-import { Pagination } from 'src/common/decorators/pagination.decorators';
 
 @Injectable()
 export class CategoryService {
@@ -17,6 +16,7 @@ export class CategoryService {
     @InjectRepository(CategoryEntity)
     private categoryRepository: Repository<CategoryEntity>
   ) {}
+
   async create(createCategoryDto: CreateCategoryDto) {
     let { title, priority } = createCategoryDto;
     title = await this.checkExistAndResolve(title);
@@ -26,6 +26,10 @@ export class CategoryService {
     });
     await this.categoryRepository.save(category);
     return { message: 'Success Created!.' };
+  }
+  async inserByTitle(title: string) {
+    const category = this.categoryRepository.create({ title });
+    return await this.categoryRepository.save(category);
   }
 
   async checkExistAndResolve(title: string) {
@@ -49,6 +53,9 @@ export class CategoryService {
     const category = await this.categoryRepository.findOneBy({ id });
     if (!category) throw new BadRequestException('Sorry Not Found!..');
     return category;
+  }
+  async findOneByTitle(title: string) {
+    return await this.categoryRepository.findOneBy({ title });
   }
 
   async update(id: number, updateCategoryDto: UpdateCategoryDto) {
