@@ -14,6 +14,7 @@ import { TokenService } from '../auth/tokens.service';
 import { OtpEntity } from './entities/otp.entity';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { AuthMethod } from '../auth/enums/method.enum';
+import { PublicMessage } from 'src/common/enums/message.enum';
 
 @Injectable({ scope: Scope.REQUEST })
 export class UserService {
@@ -76,7 +77,7 @@ export class UserService {
         { profileId: profile.id }
       );
     }
-    return { message: 'ByBy updated..' };
+    return { message: PublicMessage.Updated };
   }
 
   profile() {

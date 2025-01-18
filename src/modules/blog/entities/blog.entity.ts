@@ -23,12 +23,14 @@ export class BlogEntity extends BaseEntity {
   description: string;
   @Column()
   contetnt: string;
+  @Column({ nullable: true })
+  image: string;
   @Column({unique:true})
   slug: string;
   @Column()
   time_for_read: string;
-  @Column({ nullable: true })
-  image: string;
+  @Column({ default: BlogStatus.Draft })
+  status: string;
   @Column()
   authorId: number;
   @ManyToOne(() => UserEntity, (user) => user.blogs, { onDelete: 'CASCADE' })
@@ -41,8 +43,6 @@ export class BlogEntity extends BaseEntity {
   categories: BlogCategoryEntity[];
   @OneToMany(() => BlogCommentEntity, (comment) => comment.blog)
   comments: BlogCommentEntity[];
-  @Column({ default: BlogStatus.Draft })
-  status: string;
   @CreateDateColumn()
   created_at: Date;
   @UpdateDateColumn()
