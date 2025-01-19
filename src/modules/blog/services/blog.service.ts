@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from '../entities/blog.entity';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import {Repository } from 'typeorm';
 import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from '../dto/blog.dto';
 import { createSlug, randomId } from 'src/common/utils/function.util';
 import { REQUEST } from '@nestjs/core';
@@ -25,6 +25,7 @@ import { EntityName } from 'src/common/enums/entity.enum';
 import { BlogLikesEntity } from '../entities/like.entity';
 import { BlogBookmarkEntity } from '../entities/bookmark.entity';
 import { NotFoundMessage, PublicMessage } from 'src/common/enums/message.enum';
+import { BlogCommentService } from './comment.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class BlogService {
@@ -38,7 +39,8 @@ export class BlogService {
     @InjectRepository(BlogBookmarkEntity)
     private blogBookmarkRepository: Repository<BlogBookmarkEntity>,
     @Inject(REQUEST) private request: Request,
-    private categoryService: CategoryService
+    private categoryService: CategoryService,
+    private blogCommentService: BlogCommentService
   ) {}
   async create(blogDto: CreateBlogDto) {
     const user = this.request.user;
@@ -237,7 +239,7 @@ export class BlogService {
     }
     return { meesage };
   }
-  async findOnebySlug(slug: string) {
+  async findOnebySlug(slug: string, paginationDto: PaginationDto) {
     const userId = this.request?.user?.id;
     const blog = await this.blogRepository
       .createQueryBuilder(EntityName.Blog)
@@ -255,24 +257,20 @@ export class BlogService {
       .where({ slug })
       .loadRelationCountAndMap('blog.likes', 'blog.likes')
       .loadRelationCountAndMap('blog.bookmarks', 'blog.bookmarks')
-      .leftJoinAndSelect(
-        'blog.comments',
-        'comments',
-        'comments.accepted = :accepted',
-        { accepted: true }
-      )
       .getOne();
     if (!blog) throw new NotFoundException(NotFoundMessage.NotFoundPost);
-    const isLiked = !!(await this.blogLikeRepository.findOneBy({
-      userId,
-      blogId: blog.id,
-    }));
-    const isBookmark = !!(await this.blogBookmarkRepository.findOneBy({
-      userId,
-      blogId: blog.id,
-    }));
-    const blogData = { isBookmark, isLiked, ...blog };
-    return blogData;
+    const commentDate = await this.blogCommentService.findCommentOfBlogs(blog.id,paginationDto);
+    let isLiked = false;
+    let isBookmark = false;
+    if(userId && !isNaN(userId) && userId > 0){
+      isLiked = !!(await this.blogLikeRepository.findOneBy({userId,blogId: blog.id,}));
+      isBookmark = !!(await this.blogBookmarkRepository.findOneBy({userId,blogId: blog.id,}));
+    }
+    return { blog,
+       isBookmark,
+        isLiked,
+         commentDate
+     };
   }
 }
 

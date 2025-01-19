@@ -22,6 +22,7 @@ import { AuthResponse } from './types/responce';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { REQUEST } from '@nestjs/core/router/request';
 import { CookiesOptionToken } from 'src/common/utils/cooki.util';
+import { AuthMessage } from 'src/common/enums/message.enum';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -143,7 +144,7 @@ export class AuthService {
   async validateAccessToken(token: string) {
     const { userId } = this.tokenService.verifyAccessToken(token);
     const user = await this.userRepository.findOneBy({ id: userId });
-    if (!user) throw new BadRequestException('Sorry..Problem');
+    if (!user) throw new UnauthorizedException(AuthMessage.LoginAgain);
     return user;
   }
 

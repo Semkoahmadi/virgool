@@ -6,12 +6,13 @@ import { CategoryService } from '../../category/category.service';
 import { BlogCategoryEntity } from '../entities/blog-category.entity';
 import {
   BadRequestException,
+  forwardRef,
   Inject,
   Injectable,
   NotFoundException,
   Scope,
 } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CreateCommentDto } from '../dto/comment.dto';
 import { BlogCommentEntity } from '../entities/comment.entity';
 import { BlogService } from './blog.service';
@@ -34,7 +35,7 @@ export class BlogCommentService {
     @InjectRepository(BlogCommentEntity)
     private blogCommentRepository: Repository<BlogCommentEntity>,
     @Inject(REQUEST) private request: Request,
-    private blogService: BlogService
+    @Inject(forwardRef(() => BlogService)) private blogService: BlogService
   ) {}
   async create(commentDto: CreateCommentDto) {
     const { text, blogId, parentId } = commentDto;
@@ -66,6 +67,61 @@ export class BlogCommentService {
         user: {
           username: true,
           profile: { nick_name: true },
+        },
+      },
+      skip,
+      take: limit,
+      order: { id: 'DESC' },
+    });
+    return {
+      pagination: paginationGenerator(count, page, limit),
+      comments,
+    };
+  }
+  async findCommentOfBlogs(blogId: number, paginationDto: PaginationDto) {
+    const { limit, page, skip } = paginationSolver(paginationDto);
+    const [comments, count] = await this.blogCommentRepository.findAndCount({
+      where: {
+        blogId,
+        parentId: IsNull(),
+      },
+      relations: {
+        user: { profile: true },
+        children: {
+          user: { profile: true },
+          children: {
+            user: { profile: true },
+          },
+        },
+      },
+      select: {
+        user: {
+          username: true,
+          profile: {
+            nick_name: true,
+          },
+        },
+        children: {
+          parentId: true,
+          text: true,
+          created_at: true,
+          user: {
+            username: true,
+            profile: {
+              nick_name: true,
+            },
+          },
+          children: {
+            parentId: true,
+            text: true,
+            created_at: true,
+            user: {
+              username: true,
+              profile: {
+                nick_name: true,
+              },
+            },
+          },
         },
       },
       skip,
