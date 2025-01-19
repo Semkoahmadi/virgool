@@ -2,8 +2,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from '../entities/blog.entity';
 import { REQUEST } from '@nestjs/core';
 import { Request } from 'express';
-import { CategoryService } from '../../category/category.service';
-import { BlogCategoryEntity } from '../entities/blog-category.entity';
 import {
   BadRequestException,
   forwardRef,

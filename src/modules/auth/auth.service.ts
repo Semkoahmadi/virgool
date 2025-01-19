@@ -22,7 +22,7 @@ import { AuthResponse } from './types/responce';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { REQUEST } from '@nestjs/core/router/request';
 import { CookiesOptionToken } from 'src/common/utils/cooki.util';
-import { AuthMessage } from 'src/common/enums/message.enum';
+import { AuthMessage, PublicMessage } from 'src/common/enums/message.enum';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -126,7 +126,7 @@ export class AuthService {
     } else if (otp.method === AuthMethod.Phone) {
       await this.userRepository.update({ id: userId }, { verify_email: true });
     }
-    return { message: 'Welcome to the dashboard', acccessToken };
+    return {message:PublicMessage.LoggedIn, acccessToken };
   }
   async checkExistUser(method: AuthMethod, username: string) {
     let user: UserEntity;

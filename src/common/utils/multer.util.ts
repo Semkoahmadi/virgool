@@ -3,6 +3,7 @@ import { Request } from 'express';
 import { mkdirSync } from 'fs';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
+import { ValidationMessage } from '../enums/message.enum';
 
 export type CallbackDistination = (error: Error, destination: string) => void;
 export type CallbackFilename = (error: Error, filename: string) => void;
@@ -22,11 +23,8 @@ export function multerDestination(fieldName: string) {
 export function multerFilename(
   req: Request,
   file: MulterFile,
-  callback: CallbackFilename
-): void {
-  const ext = extname(file.originalname).toLowerCase();
-  if (!isValidImageFormat(ext)) {
-    callback(new BadRequestException('Veryy Very Gwat..!'), null);
+  callback: CallbackFilename): void {const ext = extname(file.originalname).toLowerCase();
+  if (!isValidImageFormat(ext)) {callback(new BadRequestException(ValidationMessage.InvalidImageFormat), null);
   } else {
     const filename = `${Date.now()}${ext}`;
     callback(null, filename);

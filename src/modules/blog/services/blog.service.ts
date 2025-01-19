@@ -241,8 +241,7 @@ export class BlogService {
   }
   async findOnebySlug(slug: string, paginationDto: PaginationDto) {
     const userId = this.request?.user?.id;
-    const blog = await this.blogRepository
-      .createQueryBuilder(EntityName.Blog)
+    const blog = await this.blogRepository.createQueryBuilder(EntityName.Blog)
       .leftJoin('blog.categories', 'categories')
       .leftJoin('categories.category', 'category')
       .leftJoin('blog.author', 'author')
@@ -267,8 +266,8 @@ export class BlogService {
       isBookmark = !!(await this.blogBookmarkRepository.findOneBy({userId,blogId: blog.id,}));
     }
     return { blog,
+      isLiked,
        isBookmark,
-        isLiked,
          commentDate
      };
   }

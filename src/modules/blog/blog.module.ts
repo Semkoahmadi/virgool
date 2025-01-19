@@ -12,7 +12,7 @@ import { BlogBookmarkEntity } from './entities/bookmark.entity';
 import { BlogCommentController } from './controllers/comment.controller';
 import { BlogCommentService } from './services/comment.service';
 import { BlogCommentEntity } from './entities/comment.entity';
-import { AddUserToReqWOV } from 'src/common/middelware/adduserToreqWOV.middleware';
+import { AddUserToReqWOV } from 'src/common/middleware/addUserToreqWOV.middleware';
 
 @Module({
   imports: [

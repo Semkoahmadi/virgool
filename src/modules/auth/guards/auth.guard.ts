@@ -1,12 +1,7 @@
-import {
-  BadRequestException,
-  CanActivate,
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import {CanActivate,ExecutionContext,Injectable,UnauthorizedException} from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import { Request } from 'express';
+import { Observable } from 'rxjs';
 import { isJWT } from 'class-validator';
 import { Reflector } from '@nestjs/core';
 import { SKIP_AUTH } from 'src/common/decorators/skip-auth.decorator';
@@ -14,15 +9,9 @@ import { AuthMessage } from 'src/common/enums/message.enum';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(
-    private authService: AuthService,
-    private reflector: Reflector
-  ) {}
+  constructor(private authService: AuthService,private reflector: Reflector) {}
   async canActivate(context: ExecutionContext) {
-    const isSkipeddAuthorization = this.reflector.get<boolean>(
-      SKIP_AUTH,
-      context.getHandler()
-    );
+    const isSkipeddAuthorization = this.reflector.get<boolean>(SKIP_AUTH,context.getHandler());
     if (isSkipeddAuthorization) return true;
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest<Request>();
@@ -35,7 +24,7 @@ export class AuthGuard implements CanActivate {
     if (!authorization || authorization?.trim() == "") {
       throw new UnauthorizedException(AuthMessage.LoginIsRequired);
     }
-    const [bearer, token] = authorization?.split(' ');
+    const [bearer, token] = authorization?.split(" ");
     if (bearer?.toLowerCase() !== 'bearer' || !token || !isJWT(token)) {
       throw new UnauthorizedException(AuthMessage.LoginIsRequired);
     }

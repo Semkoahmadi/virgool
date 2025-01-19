@@ -1,14 +1,4 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Put,
-  UseInterceptors,
-  UseGuards,
-  Body,
-  Res,
-  Post,
-} from '@nestjs/common';
+import {Controller,Get,Patch,Put,UseInterceptors,UseGuards,Body,Res,Post} from '@nestjs/common';
 import { UserService } from './user.service';
 import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { ProfileDto } from './dto/profile.dto';
@@ -18,32 +8,26 @@ import { multerStorage } from 'src/common/utils/multer.util';
 import { AuthGuard } from '../auth/guards/auth.guard';
 import { ProfileImage } from './types/files';
 import { UploadOptionalFiles } from 'src/common/decorators/upload-file.decorator';
-import {
-  ChangeEmailDto,
-  ChangePhoneDto,
-  ChangeUsernameDto,
-} from './dto/profile.dto';
+import {ChangeEmailDto,ChangePhoneDto,ChangeUsernameDto} from './dto/profile.dto';
 import { Response } from 'express';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { CookiesOptionToken } from 'src/common/utils/cooki.util';
 import { CheckOtpDto } from '../auth/dto/auth.dto';
+import { AuthDecorator } from 'src/common/decorators/auth.decorator';
 
 @Controller('user')
 @ApiTags('User')
-@ApiBearerAuth('Authorization')
-@UseGuards(AuthGuard)
+@AuthDecorator()
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) { }
 
   @Put('/profile')
   @ApiConsumes(SwaggerConsumes.MultipartData)
-  @UseInterceptors(
-    FileFieldsInterceptor(
+  @UseInterceptors(FileFieldsInterceptor(
       [
         { name: 'bg_image', maxCount: 1 },
         { name: 'profile_image', maxCount: 1 },
-      ],
-      {
+      ], {
         storage: multerStorage('user-profile'),
       }
     )
@@ -57,7 +41,7 @@ export class UserController {
 
   @Get('/profile')
   profile() {
-    return this.userService.profile();
+    return this.userService.profile()
   }
 
   @Patch('/change-email')
