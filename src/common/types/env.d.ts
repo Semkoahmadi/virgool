@@ -15,5 +15,7 @@ namespace NodeJS {
     EMAIL_TOKEN_SECRET:string
     PHONE_TOKEN_SECRET:string
 
+    //Kavengar
+    SEND_SMS_URL:string
   }
 }

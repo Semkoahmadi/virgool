@@ -23,6 +23,7 @@ import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { REQUEST } from '@nestjs/core/router/request';
 import { CookiesOptionToken } from 'src/common/utils/cooki.util';
 import { AuthMessage, PublicMessage } from 'src/common/enums/message.enum';
+// import { KavenegarService } from '../http/kevenegar.service';
 
 @Injectable({ scope: Scope.REQUEST })
 export class AuthService {
@@ -33,7 +34,8 @@ export class AuthService {
     private profileRepository: Repository<ProfileEntity>,
     @InjectRepository(OtpEntity) private otpRepository: Repository<OtpEntity>,
     @Inject(REQUEST) private request: Request,
-    private tokenService: TokenService
+    private tokenService: TokenService,
+    // private kavenegarService: KavenegarService
   ) {}
   async userExistence(authDto: AuthDto, res: Response) {
     const { method, type, username } = authDto;
@@ -41,9 +43,11 @@ export class AuthService {
     switch (type) {
       case Authtype.Login:
         result = await this.login(method, username);
+        await this.sendOtp(method,username,result.code)
         return this.sendResponse(res, result);
       case Authtype.Register:
         result = await this.register(method, username);
+        await this.sendOtp(method,username,result.code)
         return this.sendResponse(res, result);
       default:
         throw new UnauthorizedException('Gorg...');
@@ -53,7 +57,7 @@ export class AuthService {
     const validUsername = this.usernameValidator(method, username);
     let user: UserEntity = await this.checkExistUser(method, validUsername);
     if (!user) throw new BadRequestException('Salam!...');
-    const otp = await this.saveOtp(user.id,method);
+    const otp = await this.saveOtp(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
     return { code: otp.code, token };
   }
@@ -70,19 +74,28 @@ export class AuthService {
     user = await this.userRepository.save(user);
     user.username = `BKC_${user.id}`;
     await this.userRepository.save(user);
-    const otp = await this.saveOtp(user.id,method);
+    const otp = await this.saveOtp(user.id, method);
     const token = this.tokenService.createOtpToken({ userId: user.id });
     return {
       token,
       code: otp.code,
     };
   }
+  async sendOtp(method: AuthMethod, username: string, code: string) {
+    if (method === AuthMethod.Email) {
+      //Email
+    } else {
+      if (method === AuthMethod.Phone) {
+        // await this.kavenegarService.sendVerificationSms(username, code);
+      }
+    }
+  }
   async sendResponse(res: Response, result: AuthResponse) {
     const { token, code } = result;
-    res.cookie(CookieKeys.OTp, token,CookiesOptionToken());
-    res.json({ message: 'Sent!..', code });
+    res.cookie(CookieKeys.OTp, token, CookiesOptionToken());
+    res.json({ message: PublicMessage.SentOtp });
   }
-  async saveOtp(userId: number,method:AuthMethod) {
+  async saveOtp(userId: number, method: AuthMethod) {
     const code = randomInt(10000, 99999).toString();
     const expiresIn = new Date(Date.now() + 1000 * 60 * 2);
     let existotp = false;
@@ -97,7 +110,7 @@ export class AuthService {
         userId,
         code,
         expiresIn,
-        method  
+        method,
       });
     }
     otp = await this.otpRepository.save(otp);
@@ -126,7 +139,7 @@ export class AuthService {
     } else if (otp.method === AuthMethod.Phone) {
       await this.userRepository.update({ id: userId }, { verify_email: true });
     }
-    return {message:PublicMessage.LoggedIn, acccessToken };
+    return { message: PublicMessage.LoggedIn, acccessToken };
   }
   async checkExistUser(method: AuthMethod, username: string) {
     let user: UserEntity;
