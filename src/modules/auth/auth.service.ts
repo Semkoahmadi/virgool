@@ -93,7 +93,7 @@ export class AuthService {
   async sendResponse(res: Response, result: AuthResponse) {
     const { token, code } = result;
     res.cookie(CookieKeys.OTp, token, CookiesOptionToken());
-    res.json({ message: PublicMessage.SentOtp });
+    res.json({ message: PublicMessage.SentOtp ,code});
   }
   async saveOtp(userId: number, method: AuthMethod) {
     const code = randomInt(10000, 99999).toString();

@@ -1,6 +1,6 @@
-import {Controller,Get,Patch,Put,UseInterceptors,UseGuards,Body,Res,Post} from '@nestjs/common';
+import {Controller,Get,Patch,Put,UseInterceptors,UseGuards,Body,Res,Post, Param, ParseIntPipe, Query} from '@nestjs/common';
 import { UserService } from './user.service';
-import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiParam, ApiTags } from '@nestjs/swagger';
 import { ProfileDto } from './dto/profile.dto';
 import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
@@ -12,8 +12,10 @@ import {ChangeEmailDto,ChangePhoneDto,ChangeUsernameDto} from './dto/profile.dto
 import { Response } from 'express';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { CookiesOptionToken } from 'src/common/utils/cooki.util';
-import { CheckOtpDto } from '../auth/dto/auth.dto';
+import { CheckOtpDto, UserBlockDto } from '../auth/dto/auth.dto';
 import { AuthDecorator } from 'src/common/decorators/auth.decorator';
+import { Pagination } from 'src/common/decorators/pagination.decorators';
+import { PaginationDto } from 'src/common/dtos/pagination..dto';
 
 @Controller('user')
 @ApiTags('User')
@@ -42,6 +44,29 @@ export class UserController {
   @Get('/profile')
   profile() {
     return this.userService.profile()
+  }
+
+  @Get('/list')
+  @Pagination()
+  find(@Query() paginationDto:PaginationDto) {
+    return this.userService.find(paginationDto)
+  }
+  @Get('/followers')
+  @Pagination()
+  followers(@Query() paginationDto:PaginationDto) {
+    return this.userService.followers(paginationDto)
+  }
+
+  @Get('/following')
+  @Pagination()
+  following(@Query() paginationDto:PaginationDto) {
+    return this.userService.following(paginationDto)
+  }
+
+  @Get('/follow/:followingId')
+  @ApiParam({name:"followingId"})
+  follow(@Param("followingId",ParseIntPipe) followingId: number) {
+    return this.userService.followToggle(followingId)
   }
 
   @Patch('/change-email')
@@ -82,5 +107,12 @@ export class UserController {
   @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
   async changeUsername(@Body() usernameDto: ChangeUsernameDto) {
     return this.userService.changeUsername(usernameDto.username);
+  }
+
+  @Post('/block')
+  @ApiConsumes(SwaggerConsumes.UrlEncoded, SwaggerConsumes.Json)
+  async block(@Body() blockDto: UserBlockDto) {
+    return this.userService.blockToggle(blockDto);
+    
   }
 }

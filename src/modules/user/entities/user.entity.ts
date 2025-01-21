@@ -1,6 +1,14 @@
 import { BaseEntity } from 'src/common/abstracts/base.entity';
 import { EntityName } from 'src/common/enums/entity.enum';
-import { Column, CreateDateColumn, Entity, JoinColumn, OneToMany, OneToOne, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  JoinColumn,
+  OneToMany,
+  OneToOne,
+  UpdateDateColumn,
+} from 'typeorm';
 import { OtpEntity } from './otp.entity';
 import { ProfileEntity } from './profile.entity';
 import { BlogEntity } from 'src/modules/blog/entities/blog.entity';
@@ -9,6 +17,7 @@ import { BlogBookmarkEntity } from 'src/modules/blog/entities/bookmark.entity';
 import { BlogCommentEntity } from 'src/modules/blog/entities/comment.entity';
 import { ImageEntity } from 'src/modules/image/entities/image.entity';
 import { Roles } from 'src/common/enums/role.enum';
+import { FollowEnity } from './follow.entity';
 
 @Entity(EntityName.User)
 export class UserEntity extends BaseEntity {
@@ -18,8 +27,10 @@ export class UserEntity extends BaseEntity {
   phone: string;
   @Column({ unique: true, nullable: true })
   email: string;
-  @Column({default:Roles.User })
+  @Column({ default: Roles.User })
   role: string;
+  @Column({ nullable:true })
+  status: string;
   @Column({ nullable: true })
   new_email: string;
   @Column({ nullable: true })
@@ -27,7 +38,7 @@ export class UserEntity extends BaseEntity {
   @Column({ nullable: true, default: false })
   verify_email: boolean;
   @Column({ nullable: true, default: false })
-  verify_phone: boolean;
+  verify_phone: boolean;5
   @Column({ nullable: true })
   otpId: number;
   @Column({ nullable: true })
@@ -39,15 +50,19 @@ export class UserEntity extends BaseEntity {
   @JoinColumn()
   profile: ProfileEntity;
   @OneToMany(() => BlogEntity, (blog) => blog.author)
-  blogs: BlogEntity[]
+  blogs: BlogEntity[];
   @OneToMany(() => BlogLikesEntity, (like) => like.user)
-  blog_likes: BlogLikesEntity[]
+  blog_likes: BlogLikesEntity[];
   @OneToMany(() => BlogBookmarkEntity, (bookmark) => bookmark.user)
-  blogs_bookmark: BlogBookmarkEntity[]
+  blogs_bookmark: BlogBookmarkEntity[];
   @OneToMany(() => BlogCommentEntity, (comment) => comment.user)
-  blog_comments: BlogCommentEntity[]
+  blog_comments: BlogCommentEntity[];
   @OneToMany(() => ImageEntity, (image) => image.user)
-  images: ImageEntity[]
+  images: ImageEntity[];
+  @OneToMany(() => FollowEnity, (follow) => follow.following)
+  followers: FollowEnity[];
+  @OneToMany(() => FollowEnity, (follow) => follow.follower)
+  following: FollowEnity[];
   @CreateDateColumn()
   creatde_at: Date;
   @UpdateDateColumn()
