@@ -38,7 +38,7 @@ export class UserEntity extends BaseEntity {
   @Column({ nullable: true, default: false })
   verify_email: boolean;
   @Column({ nullable: true, default: false })
-  verify_phone: boolean;5
+  verify_phone: boolean;
   @Column({ nullable: true })
   otpId: number;
   @Column({ nullable: true })

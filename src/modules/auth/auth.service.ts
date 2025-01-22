@@ -18,11 +18,12 @@ import { OtpEntity } from '../user/entities/otp.entity';
 import { randomInt } from 'crypto';
 import { TokenService } from './tokens.service';
 import { Request, Response } from 'express';
-import { AuthResponse } from './types/responce';
+import { AuthResponse, GoogleUser } from './types/responce';
 import { CookieKeys } from 'src/common/enums/cookie.enum';
 import { REQUEST } from '@nestjs/core/router/request';
 import { CookiesOptionToken } from 'src/common/utils/cooki.util';
 import { AuthMessage, PublicMessage } from 'src/common/enums/message.enum';
+import { randomId } from 'src/common/utils/function.util';
 // import { KavenegarService } from '../http/kevenegar.service';
 
 @Injectable({ scope: Scope.REQUEST })
@@ -34,7 +35,7 @@ export class AuthService {
     private profileRepository: Repository<ProfileEntity>,
     @InjectRepository(OtpEntity) private otpRepository: Repository<OtpEntity>,
     @Inject(REQUEST) private request: Request,
-    private tokenService: TokenService,
+    private tokenService: TokenService
     // private kavenegarService: KavenegarService
   ) {}
   async userExistence(authDto: AuthDto, res: Response) {
@@ -43,11 +44,11 @@ export class AuthService {
     switch (type) {
       case Authtype.Login:
         result = await this.login(method, username);
-        await this.sendOtp(method,username,result.code)
+        await this.sendOtp(method, username, result.code);
         return this.sendResponse(res, result);
       case Authtype.Register:
         result = await this.register(method, username);
-        await this.sendOtp(method,username,result.code)
+        await this.sendOtp(method, username, result.code);
         return this.sendResponse(res, result);
       default:
         throw new UnauthorizedException('Gorg...');
@@ -93,7 +94,7 @@ export class AuthService {
   async sendResponse(res: Response, result: AuthResponse) {
     const { token, code } = result;
     res.cookie(CookieKeys.OTp, token, CookiesOptionToken());
-    res.json({ message: PublicMessage.SentOtp ,code});
+    res.json({ message: PublicMessage.SentOtp, code });
   }
   async saveOtp(userId: number, method: AuthMethod) {
     const code = randomInt(10000, 99999).toString();
@@ -174,5 +175,32 @@ export class AuthService {
       default:
         throw new BadRequestException('Sorry.. Ajebh!');
     }
+  }
+  async googleAuth(userData: GoogleUser) {
+    const { email, firstName, lastName } = userData;
+    let token: string;
+    const user = await this.userRepository.findOneBy({ email });
+    if (user) {
+      token = this.tokenService.createOtpToken({ userId: user.id });
+    } else {
+      let user = this.userRepository.create({
+        email,
+        verify_email: true,
+        username: email.split('@')['0'] + randomId(),
+      });
+      user = await this.userRepository.save(user);
+      let profile = this.profileRepository.create({
+        userId: user.id,
+        nick_name: `${firstName} ${lastName}`,
+      });
+      profile = await this.profileRepository.save(profile);
+      user.profileId = profile.id;
+      await this.userRepository.save(user);
+      token = this.tokenService.createAccessToken({userId:user.id})
+    }
+    return {
+      token
+    }
+
   }
 }

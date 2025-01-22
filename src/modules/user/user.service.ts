@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, Scope } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { UserEntity } from './entities/user.entity';
-import { Code, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { ProfileEntity } from './entities/profile.entity';
 import { REQUEST } from '@nestjs/core';
 import { ProfileDto } from './dto/profile.dto';
@@ -35,13 +35,12 @@ export class UserService {
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
     @InjectRepository(ProfileEntity)
-    private profileRepositort: Repository<ProfileEntity>,
+    private profileRepository: Repository<ProfileEntity>,
     @Inject(REQUEST) private request: Request,
     private authService: AuthService,
     private tokenService: TokenService,
     @InjectRepository(OtpEntity) private otpRepository: Repository<OtpEntity>,
-    @InjectRepository(FollowEnity)
-    private followRepository: Repository<FollowEnity>
+    @InjectRepository(FollowEnity) private followRepository: Repository<FollowEnity>
   ) {}
   async changeProfile(files: ProfileImage, profileDto: ProfileDto) {
     if (files?.profile_image?.length > 0) {
@@ -53,7 +52,7 @@ export class UserService {
       profileDto.bg_image = image?.path?.slice(7);
     }
     const { id: userId, profileId } = this.request.user;
-    let profile = await this.profileRepositort.findOneBy({ userId });
+    let profile = await this.profileRepository.findOneBy({ userId });
     const {
       nick_name,
       bio,
@@ -74,7 +73,7 @@ export class UserService {
       if (bg_image) profile.bg_image = bg_image;
       if (instagram) profile.instagram = instagram;
     } else {
-      profile = this.profileRepositort.create({
+      profile = this.profileRepository.create({
         nick_name,
         bio,
         gender,
@@ -85,7 +84,7 @@ export class UserService {
         userId,
       });
     }
-    profile = await this.profileRepositort.save(profile);
+    profile = await this.profileRepository.save(profile);
     if (!profileId) {
       await this.userRepository.update(
         { id: userId },
