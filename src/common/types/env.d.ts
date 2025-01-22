@@ -18,7 +18,6 @@ namespace NodeJS {
     //Kavengar
     SEND_SMS_URL: string;
     //AuthGoogle
-    GOOGLE_CLIENT_ID: string;
-    GOOGLE_SECRET_ID: string;
+
   }
 }
