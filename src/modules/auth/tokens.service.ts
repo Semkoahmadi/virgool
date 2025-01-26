@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { AccessTokenPayload, CookiePayload, EmailTokenPayload, PhoneTokenPayload } from './types/payload';
+import { AuthMessage, BadRequestMessage } from 'src/common/enums/message.enum';
 @Injectable()
 export class TokenService {
   constructor(private jwtService: JwtService) {}
@@ -18,7 +19,7 @@ export class TokenService {
         secret: process.env.OTP_TOKEN_SECRET,
       });
     } catch (error) {
-      throw new BadRequestException('Waaw , invalid token!!');
+      throw new UnauthorizedException(AuthMessage.TryAgain );
     }
   }
 
@@ -35,7 +36,7 @@ export class TokenService {
         secret: process.env.ACCESS_TOKEN_SECRET,
       });
     } catch (error) {
-      throw new BadRequestException('Waaw , Dozdd!!');
+      throw new UnauthorizedException(AuthMessage.LoginAgain);
     }
   }
 
@@ -52,7 +53,7 @@ export class TokenService {
         secret: process.env.EMAIL_TOKEN_SECRET,
       });
     } catch (error) {
-      throw new BadRequestException('Waaw , Dozdd!!');
+      throw new BadRequestException(BadRequestMessage.SomeThingWrong);
     }
   }
 
@@ -69,7 +70,7 @@ export class TokenService {
         secret: process.env.PHONE_TOKEN_SECRET,
       });
     } catch (error) {
-      throw new BadRequestException('Waaw , Dozdd!!');
+      throw new BadRequestException(BadRequestMessage.SomeThingWrong);
     }
   }
 }

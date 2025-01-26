@@ -1,13 +1,7 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-  Scope,
-} from '@nestjs/common';
+import {BadRequestException,Inject,Injectable,NotFoundException,Scope} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlogEntity } from '../entities/blog.entity';
-import {Repository } from 'typeorm';
+import {DataSource, Repository } from 'typeorm';
 import { CreateBlogDto, FilterBlogDto, UpdateBlogDto } from '../dto/blog.dto';
 import { createSlug, randomId } from 'src/common/utils/function.util';
 import { REQUEST } from '@nestjs/core';
@@ -40,19 +34,12 @@ export class BlogService {
     private blogBookmarkRepository: Repository<BlogBookmarkEntity>,
     @Inject(REQUEST) private request: Request,
     private categoryService: CategoryService,
-    private blogCommentService: BlogCommentService
+    private blogCommentService: BlogCommentService,
+    private dataSource: DataSource
   ) {}
   async create(blogDto: CreateBlogDto) {
     const user = this.request.user;
-    let {
-      title,
-      slug,
-      description,
-      contetnt,
-      image,
-      time_for_read,
-      categories,
-    } = blogDto;
+    let {title,slug,description,contetnt,image,time_for_read,categories} = blogDto;
     if (!isArray(categories) && typeof categories === 'string') {
       categories = categories.split(',');
     } else if (isArray(categories)) {
@@ -223,7 +210,7 @@ export class BlogService {
     }
     return { message };
   }
-  async bookmarkToggle(blogId: number) {
+    async bookmarkToggle(blogId: number) {
     const { id: userId } = this.request.user;
     const blog = await this.checkExistBlogById(blogId);
     const isBookmark = await this.blogBookmarkRepository.findOneBy({
@@ -265,11 +252,47 @@ export class BlogService {
       isLiked = !!(await this.blogLikeRepository.findOneBy({userId,blogId: blog.id,}));
       isBookmark = !!(await this.blogBookmarkRepository.findOneBy({userId,blogId: blog.id,}));
     }
-    return { blog,
-      isLiked,
-       isBookmark,
-         commentDate
-     };
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    const suggestBlogs = await queryRunner.query(`
+       WITH suggested_blogs AS (
+                SELECT 
+                    blog.id,
+                    blog.slug,
+                    blog.title,
+                    blog.description,
+                    blog.time_for_read,
+                    blog.image,
+                    json_build_object(
+                        'username', u.username,
+                        'author_name', p.nick_name,
+                        'image', p.profile_image
+                    ) AS author,
+                    array_agg(DISTINCT cat.title) AS categories,
+                    (
+                        SELECT COUNT(*) FROM blog_likes
+                        WHERE blog_likes."blogId" = blog.id
+                    ) AS likes,
+                    (
+                        SELECT COUNT(*) FROM blog_bookmarks
+                        WHERE blog_bookmarks."blogId" = blog.id
+                    ) AS bookmarks,
+                    (
+                        SELECT COUNT(*) FROM blog_comments
+                        WHERE blog_comments."blogId" = blog.id
+                    ) AS comments
+                FROM blog
+                LEFT JOIN public.user u ON blog."authorId" = u.id
+                LEFT JOIN profile p ON p."userId" = u.id
+                LEFT JOIN category cat ON bc."categoryId" = cat.id
+                GROUP BY blog.id, u.username, p.nick_name, p.profile_image
+                ORDER BY RANDOM()
+                LIMIT 3
+
+            )
+            SELECT * FROM suggested_blogs
+      `)
+    return { blog,isLiked,isBookmark,commentDate,suggestBlogs};
   }
 }
 

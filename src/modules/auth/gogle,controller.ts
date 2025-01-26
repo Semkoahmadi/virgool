@@ -14,6 +14,6 @@ export class GoogleAuthController {
   @Get('/redirect')
   googleRedirect(@Req() req) {
     const userData = req.user;
-    // return this.authService.googleAuth(userData)
+     return this.authService.googleAuth(userData)
   }
 }

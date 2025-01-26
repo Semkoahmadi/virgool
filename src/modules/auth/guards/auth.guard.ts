@@ -21,10 +21,7 @@ export class AuthGuard implements CanActivate {
     private reflector: Reflector
   ) {}
   async canActivate(context: ExecutionContext) {
-    const isSkipeddAuthorization = this.reflector.get<boolean>(
-      SKIP_AUTH,
-      context.getHandler()
-    );
+    const isSkipeddAuthorization = this.reflector.get<boolean>(SKIP_AUTH,context.getHandler());
     if (isSkipeddAuthorization) return true;
     const httpContext = context.switchToHttp();
     const request = httpContext.getRequest<Request>();

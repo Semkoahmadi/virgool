@@ -5,6 +5,7 @@ import { SwaggerConsumes } from 'src/common/enums/swagger.consumes.enum';
 import { AuthDto, CheckOtpDto } from './dto/auth.dto';
 import { Request, request, Response } from 'express';
 import { AuthGuard } from './guards/auth.guard';
+import { AuthDecorator } from 'src/common/decorators/auth.decorator';
 
 @Controller('auth')
 @ApiTags('Auth')
@@ -21,7 +22,7 @@ export class AuthController {
     return this.authService.checkOtp(checkOtpDto.code); 
   }
   @Get('check-login')
-  @ApiConsumes(SwaggerConsumes.UrlEncoded,SwaggerConsumes.Json)
+  @AuthDecorator()
   checklogin(@Req() request: Request) {
     return request.user; 
   }
